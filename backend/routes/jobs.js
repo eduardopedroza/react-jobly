@@ -14,7 +14,6 @@ const jobSearchSchema = require("../schemas/jobSearch.json");
 
 const router = express.Router({ mergeParams: true });
 
-
 /** POST / { job } => { job }
  *
  * job should be { title, salary, equity, companyHandle }
@@ -28,7 +27,7 @@ router.post("/", ensureAdmin, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, jobNewSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -59,11 +58,17 @@ router.get("/", async function (req, res, next) {
   try {
     const validator = jsonschema.validate(q, jobSearchSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
-    const jobs = await Job.findAll(q);
+    const filter = {};
+    if (q.companyName) {
+      filter.companyName = q.companyName;
+      delete q.companyName; // Remove companyName from the query to avoid conflicts
+    }
+
+    const jobs = await Job.findAll({ ...q, ...filter });
     return res.json({ jobs });
   } catch (err) {
     return next(err);
@@ -87,7 +92,6 @@ router.get("/:id", async function (req, res, next) {
   }
 });
 
-
 /** PATCH /[jobId]  { fld1, fld2, ... } => { job }
  *
  * Data can include: { title, salary, equity }
@@ -101,7 +105,7 @@ router.patch("/:id", ensureAdmin, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, jobUpdateSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -125,6 +129,5 @@ router.delete("/:id", ensureAdmin, async function (req, res, next) {
     return next(err);
   }
 });
-
 
 module.exports = router;
